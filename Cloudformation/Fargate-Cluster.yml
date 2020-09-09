@@ -8,25 +8,15 @@ Parameters:
     Type: Number
   ImageURI:
     Type: String
-
   DesiredCapacity:
     Type: Number
-    Default: '3'
-    Description: Number of EC2 instances to launch in your ECS cluster.
   MaxSize:
     Type: Number
-    Default: '5'
-    Description: Maximum number of EC2 instances that can be launched in your ECS cluster.
   ECSAMI:
-    Description: AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
   InstanceType:
-    Description: EC2 instance type
     Type: String
-    Default: c4.xlarge
-    AllowedValues: [m5.large, m4.large, c4.xlarge]
-    ConstraintDescription: Please choose a valid instance type.
+
 
 Resources:
 
