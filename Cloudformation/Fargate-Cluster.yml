@@ -214,7 +214,7 @@ Resources:
       Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: 5
-      LaunchType: VPC
+      LaunchType: EC2
       NetworkConfiguration: 
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
