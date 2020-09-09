@@ -31,8 +31,8 @@ Parameters:
     Description: Maximum number of EC2 instances that can be launched in your ECS cluster.
   ECSAMI:
     Description: AMI ID
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+    Type: String
+    Default: ami-020caff809d5a5307
   InstanceType:
     Description: EC2 instance type
     Type: String
