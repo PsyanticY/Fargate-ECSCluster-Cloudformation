@@ -11,12 +11,7 @@ Parameters:
 
 Resources:
 
-  # Create an ECS Cluster
-  Cluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Cluster']]
-
+  # VPC in which containers will be networked.
   # Create a VPC
   VPC:
     Type: AWS::EC2::VPC
@@ -24,6 +19,11 @@ Resources:
       CidrBlock: 172.10.0.0/16
       EnableDnsHostnames: True
       EnableDnsSupport: True
+      Tags:
+        - Key: Name
+          Value: Prime_VPC
+        - Key: Project
+          Value: Prime
 
   # Create a Subnet
   SubnetA:
@@ -31,6 +31,7 @@ Resources:
     Properties:
       CidrBlock: 172.10.1.0/24
       VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
       AvailabilityZone: !Join ['', [!Ref "AWS::Region", 'a']]
 
   # Create a Subnet
@@ -39,7 +40,17 @@ Resources:
     Properties:
       CidrBlock: 172.10.2.0/24
       VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
       AvailabilityZone: !Join ['', [!Ref "AWS::Region", 'b']]
+
+  # Create a Subnet
+  SubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 172.10.3.0/24
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Join ['', [!Ref "AWS::Region", 'c']]
 
   # Create a route table to allow access to internet
   PublicRouteTable:
@@ -70,6 +81,12 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref SubnetB
 
+  SubnetCPublicRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref SubnetC
+
   # Create an Internet Gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -81,21 +98,16 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
-  # Create Access Role for ECS-Tasks
-  ExecutionRole:
-    Type: AWS::IAM::Role
+  # ECS Cluster resources
+  # Create an ECS Cluster
+  Cluster:
+    Type: AWS::ECS::Cluster
     Properties:
-      RoleName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ExecutionRole']]
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+      ClusterName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Cluster']]
 
   # Create a TaskDefinition with container details
+  # port mapping; since we are using the awsvpc network mode, port mapping, container 
+  # and host port should be the same: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ecs-taskdefinition-containerdefinitions-portmappings.html
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties: 
@@ -103,7 +115,7 @@ Resources:
       Cpu: 512
       NetworkMode: awsvpc
       RequiresCompatibilities:
-        - 'FARGATE'
+        - 'EC2'
       TaskRoleArn: !Ref ExecutionRole
       ExecutionRoleArn: !Ref ExecutionRole
       ContainerDefinitions:
@@ -113,7 +125,22 @@ Resources:
             - ContainerPort: !Ref ContainerPort
               HostPort: !Ref ContainerPort
 
-  # Creat a security group for load balancer and open port 80 in bound from internet
+  # Create Access Role for ECS-Tasks
+  # I think this is where we grant docker containers in ecs permissions to access stuff such as s3 or EMR ...
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['-', [!Ref Stage,'ECS-Task-ExecutionRole']]
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+
+  # Creat a security group for load balancer and open port 8080 in bound from internet
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -121,9 +148,10 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
+          FromPort: 8080
+          ToPort: 8080
           CidrIp: 0.0.0.0/0
+# remove the open to the world and add the needed ip and make sure to swap 8080 to 443 and update whats required  
 
   # Creat a security group for Containers and open in bound Container port from Load balancer security group to the Container 
   ContainerSecurityGroup:
@@ -136,6 +164,10 @@ Resources:
           FromPort: !Ref ContainerPort
           ToPort: !Ref ContainerPort
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 196.203.15.132/32
 
   # Create a LoadBalancer and attach the Security group and Subnets
   LoadBalancer:
@@ -149,6 +181,7 @@ Resources:
       Subnets: 
         - !Ref SubnetA
         - !Ref SubnetB
+        - !Ref SubnetC
       Type: application
 
   # Create a TargetGroup for HTTP port 80
@@ -180,14 +213,15 @@ Resources:
       ServiceName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ECSService']]
       Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinition
-      DesiredCount: 2
-      LaunchType: FARGATE
+      DesiredCount: 5
+      LaunchType: VPC
       NetworkConfiguration: 
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
             - !Ref SubnetA
             - !Ref SubnetB
+            - !Ref SubnetC
           SecurityGroups:
             - !Ref ContainerSecurityGroup
       LoadBalancers:
