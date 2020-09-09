@@ -43,7 +43,7 @@ Resources:
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Join ['', [!Ref "AWS::Region", 'b']]
 
-  # Create a Subnet
+  # Create a Subnet 
   SubnetC:
     Type: AWS::EC2::Subnet
     Properties:
@@ -140,7 +140,7 @@ Resources:
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
 
-  # Creat a security group for load balancer and open port 8080 in bound from internet
+  # Creat a security group for load balancer and open port 80 in bound from internet
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -148,8 +148,8 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
+          FromPort: 80
+          ToPort: 80
           CidrIp: 0.0.0.0/0
 # remove the open to the world and add the needed ip and make sure to swap 8080 to 443 and update whats required  
 
