@@ -13,7 +13,7 @@ Parameters:
   MaxSize:
     Type: Number
   ECSAMI:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Type: String
   InstanceType:
     Type: String
 
