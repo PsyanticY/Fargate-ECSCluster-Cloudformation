@@ -186,10 +186,10 @@ Resources:
                     "ImageURI" : { "Fn::GetParam" : ["build-output-artifacts", "imageDetail.json", "ImageURI"] },
                     "Stage":  "${Stage}",
                     "ContainerPort": "${ContainerPort}",
-                    "DesiredCapacity": ${DesiredCapacity},
-                    "MaxSize": ${MaxSize},
-                    "ECSAMI": ${ECSAMI},
-                    "InstanceType": ${InstanceType}
+                    "DesiredCapacity": "${DesiredCapacity}",
+                    "MaxSize": "${MaxSize}",
+                    "ECSAMI": "${ECSAMI}",
+                    "InstanceType": "${InstanceType}"
                   }
                 RoleArn: 
                   Fn::GetAtt: [ CloudformationExecutionRole, Arn ]
