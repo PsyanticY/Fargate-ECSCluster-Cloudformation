@@ -50,8 +50,8 @@ Resources:
       CidrBlock: 172.10.3.0/24
       VpcId: !Ref VPC
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Join ['', [!Ref "AWS::Region", 'c']]
-
+      AvailabilityZone: !Join ['', [!Ref "AWS::Region", 'd']]
+# d here is a specific case of ca.central-1 ( swap back to c)
   # Create a route table to allow access to internet
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
