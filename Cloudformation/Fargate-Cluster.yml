@@ -9,6 +9,25 @@ Parameters:
   ImageURI:
     Type: String
 
+  DesiredCapacity:
+    Type: Number
+    Default: '3'
+    Description: Number of EC2 instances to launch in your ECS cluster.
+  MaxSize:
+    Type: Number
+    Default: '5'
+    Description: Maximum number of EC2 instances that can be launched in your ECS cluster.
+  ECSAMI:
+    Description: AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: c4.xlarge
+    AllowedValues: [m5.large, m4.large, c4.xlarge]
+    ConstraintDescription: Please choose a valid instance type.
+
 Resources:
 
   # VPC in which containers will be networked.
@@ -98,8 +117,161 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
+####################################"""""""""""""""""""""""""""""""""""""""#########################################"""
+  # Creat a security group for Containers and open in bound Container port from Load balancer security group to the Container 
+  EcsHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Access to the ECS hosts that run containers']]
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 196.203.15.132/32
+        - Description: Ingress from other hosts in the same security group ( all open )
+          IpProtocol: -1
+          SourceSecurityGroupId: !Ref 'EcsHostSecurityGroup'
+
+  # Autoscaling group. This launches the actual EC2 instances that will register
+  # themselves as members of the cluster, and run the docker containers.
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - !Ref SubnetA
+        - !Ref SubnetB
+        - !Ref SubnetC
+      LaunchConfigurationName: !Ref 'ContainerInstances'
+      MinSize: '1'
+      MaxSize: !Ref 'MaxSize'
+      DesiredCapacity: !Ref 'DesiredCapacity'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+
+  ContainerInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref 'ECSAMI'
+      SecurityGroups: [!Ref 'EcsHostSecurityGroup']
+      InstanceType: !Ref 'InstanceType'
+      IamInstanceProfile: !Ref 'EC2InstanceProfile'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+
+  AutoscalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [application-autoscaling.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: service-autoscaling
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+              - 'application-autoscaling:*'
+              - 'cloudwatch:DescribeAlarms'
+              - 'cloudwatch:PutMetricAlarm'
+              - 'ecs:DescribeServices'
+              - 'ecs:UpdateService'
+            Resource: '*'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref 'EC2Role']
+
+  # Role for the EC2 hosts. This allows the ECS agent on the EC2 hosts
+  # to communciate with the ECS control plane, as well as download the docker
+  # images from ECR to run on your host.
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ec2.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+              - 'ecs:CreateCluster'
+              - 'ecs:DeregisterContainerInstance'
+              - 'ecs:DiscoverPollEndpoint'
+              - 'ecs:Poll'
+              - 'ecs:RegisterContainerInstance'
+              - 'ecs:StartTelemetrySession'
+              - 'ecs:Submit*'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+              - 'ecr:GetAuthorizationToken'
+              - 'ecr:BatchGetImage'
+              - 'ecr:GetDownloadUrlForLayer'
+            Resource: '*'
+# we can add another role for this when we need more emr permissions
+  ECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+              # Rules which allow ECS to attach network interfaces to instances
+              # on your behalf in order for awsvpc networking mode to work right
+              - 'ec2:AttachNetworkInterface'
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:CreateNetworkInterfacePermission'
+              - 'ec2:DeleteNetworkInterface'
+              - 'ec2:DeleteNetworkInterfacePermission'
+              - 'ec2:Describe*'
+              - 'ec2:DetachNetworkInterface'
+
+              # Rules which allow ECS to update load balancers on your behalf
+              # with the informations about how to send traffic to your containers
+              - 'elasticloadbalancing:DeregisterInstancesFromLoadBalancer'
+              - 'elasticloadbalancing:DeregisterTargets'
+              - 'elasticloadbalancing:Describe*'
+              - 'elasticloadbalancing:RegisterInstancesWithLoadBalancer'
+              - 'elasticloadbalancing:RegisterTargets'
+            Resource: '*'
+
+
+
   # ECS Cluster resources
-  # Create an ECS Cluster
+
   Cluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -111,34 +283,40 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties: 
-      Memory: 1024
-      Cpu: 512
+      Memory: !Ref 'ContainerMemory'
+      Cpu: !Ref 'ContainerCpu'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - 'EC2'
-      TaskRoleArn: !Ref ExecutionRole
-      ExecutionRoleArn: !Ref ExecutionRole
+      TaskRoleArn: !Ref ECSRole
+      ExecutionRoleArn: !Ref ECSRole
       ContainerDefinitions:
         - Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Container']]
           Image: !Ref ImageURI
+          Cpu: !Ref 'ContainerCpu'
+          Memory: !Ref 'ContainerMemory'
           PortMappings:
             - ContainerPort: !Ref ContainerPort
-              HostPort: !Ref ContainerPort
 
-  # Create Access Role for ECS-Tasks
-  # I think this is where we grant docker containers in ecs permissions to access stuff such as s3 or EMR ...
-  ExecutionRole:
-    Type: AWS::IAM::Role
+  # The service. The service is a resource which allows you to run multiple
+  # copies of a type of task, and gather up their logs and metrics, as well
+  # as monitor the number of running tasks and replace any that have crashed
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn: LoadBalancerRule
     Properties:
-      RoleName: !Join ['-', [!Ref Stage,'ECS-Task-ExecutionRole']]
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      ServiceName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ECSService']]
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref 'DesiredCount'
+      LoadBalancers:
+        - ContainerName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Container']]
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+
 
   # Creat a security group for load balancer and open port 80 in bound from internet
   LoadBalancerSecurityGroup:
@@ -153,29 +331,16 @@ Resources:
           CidrIp: 0.0.0.0/0
 # remove the open to the world and add the needed ip and make sure to swap 8080 to 443 and update whats required  
 
-  # Creat a security group for Containers and open in bound Container port from Load balancer security group to the Container 
-  ContainerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ContainerSecurityGroup']]
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref ContainerPort
-          ToPort: !Ref ContainerPort
-          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 196.203.15.132/32
-
   # Create a LoadBalancer and attach the Security group and Subnets
-  LoadBalancer:
+  PublicLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties: 
       IpAddressType: ipv4
-      Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'LoadBalancer']]
       Scheme: internet-facing
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: '30'
+      Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'PublicLoadBalancer']]
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
       Subnets: 
@@ -184,46 +349,48 @@ Resources:
         - !Ref SubnetC
       Type: application
 
-  # Create a TargetGroup for HTTP port 80
+  # A target group. This is used for keeping track of all the tasks, and
+  # what IP addresses / port numbers they have. You can query it yourself,
+  # to use the addresses yourself, but most often this target group is just
+  # connected to an application load balancer, or network load balancer, so
+  # it can automatically distribute traffic across all the targets.
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'TargetGroup']]
+      # HealthCheckIntervalSeconds: 6
+      # HealthCheckPath: /
+      # HealthCheckProtocol: HTTP
+      # HealthCheckTimeoutSeconds: 5
+      # HealthyThresholdCount: 2
       Port: 80
       Protocol: HTTP
-      TargetType: ip
+      # UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
+#      TargetType: ip # ?
 
   # Create a LoadBalancerListener and attach the TargetGroup and LoadBalancer
   LoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - PublicLoadBalancer
     Properties:
-      DefaultActions: 
+      DefaultActions:
         - TargetGroupArn: !Ref TargetGroup
-          Type: forward
-      LoadBalancerArn: !Ref LoadBalancer
+          Type: 'forward'
+      LoadBalancerArn: !Ref PublicLoadBalancer
       Port: 80
       Protocol: HTTP
 
-  # Create an ECS Service and add created Cluster, TaskDefintion, Subnets, TargetGroup and SecurityGroup
-  ECSService:
-    Type: AWS::ECS::Service
-    DependsOn: LoadBalancerListener
+  # Create a rule on the load balancer for routing traffic to the target group
+  LoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
-      ServiceName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ECSService']]
-      Cluster: !Ref Cluster
-      TaskDefinition: !Ref TaskDefinition
-      DesiredCount: 5
-      LaunchType: EC2
-      NetworkConfiguration: 
-        AwsvpcConfiguration:
-          Subnets:
-            - !Ref SubnetA
-            - !Ref SubnetB
-            - !Ref SubnetC
-          SecurityGroups:
-            - !Ref ContainerSecurityGroup
-      LoadBalancers:
-        - ContainerName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Container']]
-          ContainerPort: !Ref ContainerPort
-          TargetGroupArn: !Ref TargetGroup
+      Actions:
+        - TargetGroupArn: !Ref 'TargetGroup'
+          Type: 'forward'
+      Conditions:
+        - Field: path-pattern
+          Values: "*"
+      ListenerArn: !Ref LoadBalancerListener
+      Priority: !Ref 'Priority'
