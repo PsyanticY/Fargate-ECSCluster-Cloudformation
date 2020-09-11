@@ -7,13 +7,13 @@ Parameters:
     Default: dev
   GithubUserName:
     Type: String
-    Default: <User>
+    Default: PsyanticY
   GithubRepo:
     Type: String
     Default: Fargate-ECSCluster-Cloudformation
   GithubBranch:
     Type: String
-    Default: <Branch>
+    Default: master
   GithubOAuthToken:
     Type: String
     Default: <Token>
