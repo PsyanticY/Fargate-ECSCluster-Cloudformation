@@ -131,8 +131,8 @@ Resources:
 
   EcsSGIngressFromSelf:
     Type: AWS::EC2::SecurityGroupIngress
-    GroupDescription: 'Access from within each others'
     Properties:
+      GroupDescription: Access from within each others
       Description: Ingress from other hosts in the same security group ( all open )
       GroupId: !Ref 'EcsHostSG'
       IpProtocol: -1
