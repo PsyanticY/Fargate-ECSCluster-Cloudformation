@@ -136,13 +136,15 @@ Resources:
           CidrIp: 196.203.15.132/32
 
   EcsSGIngressFromSelf:
-    Type: AWS::EC2::SecurityGroupIngress
+    Type: AWS::EC2::SecurityGroup
     Properties:
+      VpcId: !Ref VPC
       GroupDescription: Access from within each others
-      Description: Ingress from other hosts in the same security group ( all open )
-      GroupId: !Ref 'EcsHostSG'
-      IpProtocol: -1
-      SourceSecurityGroupId: !Ref 'EcsHostSG'
+      SecurityGroupIngress:
+        - Description: Ingress from other hosts in the same security group ( all open )
+          GroupId: !Ref 'EcsHostSG'
+          IpProtocol: -1
+          SourceSecurityGroupId: !Ref 'EcsHostSG'
 
   # Autoscaling group. This launches the actual EC2 instances that will register
   # themselves as members of the cluster, and run the docker containers.
