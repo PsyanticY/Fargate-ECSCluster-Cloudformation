@@ -16,7 +16,10 @@ Parameters:
     Type: String
   InstanceType:
     Type: String
-
+  ContainerCpu:
+    Type: Number
+  ContainerMemory:
+    Type: Number
 
 Resources:
 

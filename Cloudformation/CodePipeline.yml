@@ -39,6 +39,14 @@ Parameters:
     Default: c4.xlarge
     AllowedValues: [m5.large, m4.large, c4.xlarge]
     ConstraintDescription: Please choose a valid instance type.
+  ContainerCpu:
+    Type: Number
+    Default: 256
+    Description: How much CPU to give the container. 1024 is 1 CPU
+  ContainerMemory:
+    Type: Number
+    Default: 512
+    Description: How much memory in megabytes to give the container
 
 Resources:
 
