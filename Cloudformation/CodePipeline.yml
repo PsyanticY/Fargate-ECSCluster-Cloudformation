@@ -201,7 +201,10 @@ Resources:
                     "DesiredCapacity": "${DesiredCapacity}",
                     "MaxSize": "${MaxSize}",
                     "ECSAMI": "${ECSAMI}",
-                    "InstanceType": "${InstanceType}"
+                    "InstanceType": "${InstanceType}",
+                    "ContainerCpu: "${ContainerCpu}",
+                    "ContainerMemory": "${ContainerMemory}",
+                    "DesiredCount": "${DesiredCount}"
                   }
                 RoleArn: 
                   Fn::GetAtt: [ CloudformationExecutionRole, Arn ]
