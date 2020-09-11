@@ -376,7 +376,7 @@ Resources:
       Protocol: HTTP
       # UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
-#      TargetType: ip # ?
+      TargetType: ip # ?
 
   # Create a LoadBalancerListener and attach the TargetGroup and LoadBalancer
   LoadBalancerListener:
