@@ -293,7 +293,7 @@ Resources:
     Properties: 
       Memory: !Ref 'ContainerMemory'
       Cpu: !Ref 'ContainerCpu'
-      NetworkMode: awsvpc
+      NetworkMode: host
       RequiresCompatibilities:
         - 'EC2'
       TaskRoleArn: !Ref ECSRole
