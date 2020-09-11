@@ -20,6 +20,9 @@ Parameters:
     Type: Number
   ContainerMemory:
     Type: Number
+  DesiredCount:
+    Type: Number
+
 
 Resources:
 
@@ -111,7 +114,7 @@ Resources:
       VpcId: !Ref VPC
 
   # Creat a security group for Containers and open in bound Container port from Load balancer security group to the Container 
-  EcsHostSecurityGroup:
+  EcsHostSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Access to the ECS hosts that run containers']]
@@ -125,9 +128,15 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 196.203.15.132/32
-        - Description: Ingress from other hosts in the same security group ( all open )
-          IpProtocol: -1
-          SourceSecurityGroupId: !Ref 'EcsHostSecurityGroup'
+
+  EcsSGIngressFromSelf:
+    Type: AWS::EC2::SecurityGroupIngress
+    GroupDescription: 'Access from within each others'
+    Properties:
+      Description: Ingress from other hosts in the same security group ( all open )
+      GroupId: !Ref 'EcsHostSG'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'EcsHostSG'
 
   # Autoscaling group. This launches the actual EC2 instances that will register
   # themselves as members of the cluster, and run the docker containers.
@@ -153,7 +162,7 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       ImageId: !Ref 'ECSAMI'
-      SecurityGroups: [!Ref 'EcsHostSecurityGroup']
+      SecurityGroups: [!Ref 'EcsHostSG', !Ref 'EcsSGIngressFromSelf']
       InstanceType: !Ref 'InstanceType'
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
       UserData:
@@ -264,7 +273,7 @@ Resources:
 
   # ECS Cluster resources
 
-  Cluster:
+  ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Cluster']]
@@ -302,7 +311,7 @@ Resources:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
       ServiceName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ECSService']]
-      Cluster: !Ref Cluster
+      Cluster: !Ref ECSCluster
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !Ref 'DesiredCount'
       LoadBalancers:
