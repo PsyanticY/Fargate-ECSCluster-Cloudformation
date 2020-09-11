@@ -292,7 +292,8 @@ Resources:
   # as monitor the number of running tasks and replace any that have crashed
   ECSService:
     Type: AWS::ECS::Service
-    # DependsOn: LoadBalancerListener
+    DependsOn: 
+      - LoadBalancerListener
     Properties:
       DeploymentConfiguration:
         MaximumPercent: 200
@@ -382,4 +383,3 @@ Resources:
         - Field: path-pattern
           Values: "*"
       ListenerArn: !Ref LoadBalancerListener
-      Priority: !Ref 'Priority'
