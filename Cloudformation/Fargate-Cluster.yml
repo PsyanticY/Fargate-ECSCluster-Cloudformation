@@ -349,7 +349,7 @@ Resources:
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '30'
-      Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'PublicLoadBalancer']]
+      Name: !Join ['-', [!Ref Stage, 'Prime-ALP']]
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
       Subnets: 
