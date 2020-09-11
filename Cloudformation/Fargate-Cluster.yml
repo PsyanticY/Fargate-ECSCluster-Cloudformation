@@ -142,7 +142,6 @@ Resources:
       GroupDescription: Access from within each others
       SecurityGroupIngress:
         - Description: Ingress from other hosts in the same security group ( all open )
-          GroupId: !Ref 'EcsHostSG'
           IpProtocol: -1
           SourceSecurityGroupId: !Ref 'EcsHostSG'
 
