@@ -41,15 +41,15 @@ Parameters:
     ConstraintDescription: Please choose a valid instance type.
   ContainerCpu:
     Type: Number
-    Default: 256
+    Default: '256'
     Description: How much CPU to give the container. 1024 is 1 CPU
   ContainerMemory:
     Type: Number
-    Default: 512
+    Default: '512'
     Description: How much memory in megabytes to give the container
   DesiredCount:
     Type: Number
-    Default: 2
+    Default: '2'
     Description: How many copies of the service task to run
 
 Resources:
@@ -201,13 +201,16 @@ Resources:
                     "DesiredCapacity": "${DesiredCapacity}",
                     "MaxSize": "${MaxSize}",
                     "ECSAMI": "${ECSAMI}",
-                    "InstanceType": "${InstanceType}",
-                    "ContainerCpu: "${ContainerCpu}",
-                    "ContainerMemory": "${ContainerMemory}",
-                    "DesiredCount": "${DesiredCount}"
+                    "InstanceType": "${InstanceType}"
+
                   }
                 RoleArn: 
                   Fn::GetAtt: [ CloudformationExecutionRole, Arn ]
                 StackName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'FargateECSCluster']]
                 TemplatePath: source-output-artifacts::Cloudformation/Fargate-Cluster.yml
             RunOrder: 1
+
+
+                    #             "ContainerCpu: "${ContainerCpu}",
+                    # "ContainerMemory": "${ContainerMemory}",
+                    # "DesiredCount": "${DesiredCount}"

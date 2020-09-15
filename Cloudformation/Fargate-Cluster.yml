@@ -18,15 +18,15 @@ Parameters:
     Type: String
   ContainerCpu:
     Type: Number
-    Default: 256
+    Default: '256'
     Description: How much CPU to give the container. 1024 is 1 CPU
   ContainerMemory:
     Type: Number
-    Default: 512
+    Default: '512'
     Description: How much memory in megabytes to give the container
   DesiredCount:
     Type: Number
-    Default: 2
+    Default: '2'
     Description: How many copies of the service task to run
 
 
@@ -376,7 +376,7 @@ Resources:
       Protocol: HTTP
       # UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
-      TargetType: ip # ?
+      TargetType: instance # ?
 
   # Create a LoadBalancerListener and attach the TargetGroup and LoadBalancer
   LoadBalancerListener:
