@@ -32,7 +32,7 @@ Parameters:
   ECSAMI:
     Description: AMI ID
     Type: String
-    Default: ami-020caff809d5a5307
+    Default: ami-0e7767d1cb89be85d
   InstanceType:
     Description: EC2 instance type
     Type: String
