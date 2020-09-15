@@ -172,6 +172,7 @@ Resources:
       SecurityGroups: [!Ref 'EcsHostSG', !Ref 'EcsSGIngressFromSelf']
       InstanceType: !Ref 'InstanceType'
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
+      KeyName: dovah
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
