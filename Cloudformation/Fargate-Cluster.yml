@@ -298,8 +298,6 @@ Resources:
       NetworkMode: host
       RequiresCompatibilities:
         - 'EC2'
-      TaskRoleArn: !Ref ECSRole
-      ExecutionRoleArn: !Ref ECSRole
       ContainerDefinitions:
         - Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Container']]
           Image: !Ref ImageURI
@@ -321,6 +319,7 @@ Resources:
         MinimumHealthyPercent: 75
       ServiceName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ECSService']]
       Cluster: !Ref ECSCluster
+      Role: !Ref ECSRole
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !Ref 'DesiredCount'
       LoadBalancers:
