@@ -58,13 +58,13 @@ Resources:
   ECRRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ecr-repository']]
+      RepositoryName: !Join ['-', ['Optimus-Prime', !Ref Stage, 'ERC-Repo']]
 
   # Create an S3 Bucket to store build artifacts
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 's3bucket']]
+      BucketName: !Join ['-', ['Optimus-Prime', !Ref Stage, !Ref 'AWS::AccountId']]
 
   # Create Access Role for CodePipeLine
   CodePipeLineExecutionRole:
@@ -120,7 +120,7 @@ Resources:
         EnvironmentVariables:
           - Name: ECR_REPOSITORY_URI
             Value: !Join [ ".", [ !Ref "AWS::AccountId", "dkr.ecr", !Ref "AWS::Region", !Join [ "/", [ "amazonaws.com", !Ref "ECRRepository" ] ] ] ]
-      Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'BuildProject']]
+      Name: !Join ['-', ['Optimus-Prime', !Ref Stage, 'BuildProject']]
       ServiceRole: !Ref CodeBuildExecutionRole
       Source:
         Type: CODEPIPELINE
@@ -133,9 +133,9 @@ Resources:
     DependsOn: S3Bucket
     Properties: 
       ArtifactStore: 
-        Location: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 's3bucket']]
+        Location: !Join ['-', ['Optimus-Prime', !Ref Stage, !Ref 'AWS::AccountId']]
         Type: S3
-      Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'CodePipeLine']]
+      Name: !Join ['-', ['Optimus-Prime', !Ref Stage, 'CodePipeLine']]
       RestartExecutionOnUpdate: False
       RoleArn: 
         Fn::GetAtt: [ CodePipeLineExecutionRole, Arn ]
@@ -206,8 +206,8 @@ Resources:
                   }
                 RoleArn: 
                   Fn::GetAtt: [ CloudformationExecutionRole, Arn ]
-                StackName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'FargateECSCluster']]
-                TemplatePath: source-output-artifacts::Cloudformation/Fargate-Cluster.yml
+                StackName: !Join ['-', [ 'Optimus-Prime', !Ref Stage, 'EC2ECSCluster']]
+                TemplatePath: source-output-artifacts::Cloudformation/EC2ECS-Cluster.yml
             RunOrder: 1
 
 

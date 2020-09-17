@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: The CloudFormation template for the Fargate ECS Cluster.
+Description: The CloudFormation template for the EC2 ECS Cluster.
 
 Parameters:
   Stage:
@@ -285,7 +285,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Cluster']]
+      ClusterName: !Join ['-', ['Optimus-Prime', !Ref Stage, 'ECSCluster']]
 
   # Create a TaskDefinition with container details
   # port mapping; since we are using the awsvpc network mode, port mapping, container 
@@ -299,7 +299,7 @@ Resources:
       RequiresCompatibilities:
         - 'EC2'
       ContainerDefinitions:
-        - Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Container']]
+        - Name: !Join ['-', ['Optimus-Prime', !Ref Stage, 'Container']]
           Image: !Ref ImageURI
           Cpu: !Ref 'ContainerCpu'
           Memory: !Ref 'ContainerMemory'
@@ -317,13 +317,13 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 75
-      ServiceName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'ECSService']]
+      ServiceName: !Join ['-', ['Optimus-Prime', !Ref Stage, 'ECSService']]
       Cluster: !Ref ECSCluster
       Role: !Ref ECSRole
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !Ref 'DesiredCount'
       LoadBalancers:
-        - ContainerName: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Container']]
+        - ContainerName: !Join ['-', ['Optimus-Prime', !Ref Stage, 'Container']]
           ContainerPort: !Ref ContainerPort
           TargetGroupArn: !Ref TargetGroup
 
@@ -332,7 +332,7 @@ Resources:
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'LoadBalancerSecurityGroup']]
+      GroupDescription: !Join ['-', ['Optimus-Prime', !Ref Stage, 'LoadBalancerSecurityGroup']]
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -350,7 +350,7 @@ Resources:
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '30'
-      Name: !Join ['-', [!Ref Stage, 'Prime-ALP']]
+      Name: !Join ['-', ['Optimus-Prime', !Ref Stage, 'ALB']]
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
       Subnets: 
@@ -367,7 +367,7 @@ Resources:
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'TargetGroup']]
+      Name: !Join ['-', ['Optimus-Prime', !Ref Stage, 'TargetGroup']]
       # HealthCheckIntervalSeconds: 6
       # HealthCheckPath: /
       # HealthCheckProtocol: HTTP
