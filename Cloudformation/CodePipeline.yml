@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: The CloudFormation template for the CodePipeline.
-
+# when using bitbucket we always need to create a connection before hand 
+#(we need to do it once manually since you need bb confirmation)
+# a connection is account and region bound
+# link: https://ca-central-1.console.aws.amazon.com/codesuite/settings/connections?region=ca-central-1&connections-meta=%7B%22f%22%3A%7B%22text%22%3A%22%22%7D%2C%22s%22%3A%7B%7D%2C%22n%22%3A20%2C%22i%22%3A0%7D
 Parameters:
   Stage:
     Type: String
