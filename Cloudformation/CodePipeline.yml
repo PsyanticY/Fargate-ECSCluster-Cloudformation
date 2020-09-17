@@ -5,22 +5,20 @@ Parameters:
   Stage:
     Type: String
     Default: dev
-  GithubUserName:
+
+  BBConnection:
     Type: String
-    Default: PsyanticY
-  GithubRepo:
+    Default: <>
+  RepoId:
     Type: String
-    Default: Fargate-ECSCluster-Cloudformation
-  GithubBranch:
+    Default: <>
+  BranchName:
     Type: String
     Default: master
-  GithubOAuthToken:
-    Type: String
-    Default: <Token>
+
   ContainerPort:
     Type: Number
     Default: 8080
-
   DesiredCapacity:
     Type: Number
     Default: '3'
@@ -148,14 +146,13 @@ Resources:
           - Name: Source
             ActionTypeId: 
               Category: Source
-              Owner: ThirdParty
-              Provider: GitHub
+              Owner: AWS
+              Provider: CodeStarSourceConnection
               Version: 1
             Configuration:
-              Repo: !Ref GithubRepo
-              Branch: !Ref GithubBranch
-              Owner: !Ref GithubUserName
-              OAuthToken: !Ref GithubOAuthToken
+              ConnectionArn: !Ref BBConnection
+              FullRepositoryId: !Ref RepoId
+              BranchName: !Ref BranchName
             RunOrder: 1
             OutputArtifacts:
               - Name: source-output-artifacts
