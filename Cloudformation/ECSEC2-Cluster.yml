@@ -123,7 +123,7 @@ Resources:
   EcsHostSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Join ['-', [!Ref Stage, !Ref 'AWS::AccountId', 'Access to the ECS hosts that run containers']]
+      GroupDescription: Access to the ECS hosts that run containers
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp

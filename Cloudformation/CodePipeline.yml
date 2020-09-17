@@ -58,13 +58,13 @@ Resources:
   ECRRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Join ['-', ['Optimus-Prime', !Ref Stage, 'ERC-Repo']]
+      RepositoryName: !Join ['-', ['optimus-prime', !Ref Stage, 'erc-repo']]
 
   # Create an S3 Bucket to store build artifacts
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join ['-', ['Optimus-Prime', !Ref Stage, !Ref 'AWS::AccountId']]
+      BucketName: !Join ['-', ['optimus-prime', !Ref Stage, !Ref 'AWS::AccountId']]
 
   # Create Access Role for CodePipeLine
   CodePipeLineExecutionRole:
@@ -133,7 +133,7 @@ Resources:
     DependsOn: S3Bucket
     Properties: 
       ArtifactStore: 
-        Location: !Join ['-', ['Optimus-Prime', !Ref Stage, !Ref 'AWS::AccountId']]
+        Location: !Join ['-', ['optimus-prime', !Ref Stage, !Ref 'AWS::AccountId']]
         Type: S3
       Name: !Join ['-', ['Optimus-Prime', !Ref Stage, 'CodePipeLine']]
       RestartExecutionOnUpdate: False
@@ -206,8 +206,8 @@ Resources:
                   }
                 RoleArn: 
                   Fn::GetAtt: [ CloudformationExecutionRole, Arn ]
-                StackName: !Join ['-', [ 'Optimus-Prime', !Ref Stage, 'EC2ECSCluster']]
-                TemplatePath: source-output-artifacts::Cloudformation/EC2ECS-Cluster.yml
+                StackName: !Join ['-', [ 'Optimus-Prime', !Ref Stage, 'ECSEC2Cluster']]
+                TemplatePath: source-output-artifacts::Cloudformation/ECSEC2-Cluster.yml
             RunOrder: 1
 
 
