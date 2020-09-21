@@ -1,5 +1,12 @@
 version: 0.2
 
+env:
+  variables:
+    git_url: "git@bitbucket.org:fazet/lolz.git"
+  parameter-store:
+    ssh_key: id_rsa
+    ssh_pub: id_rsa.pub
+
 phases:
   install:
     runtime-versions:
@@ -11,6 +18,20 @@ phases:
       - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo Starting the WorkAround to download the Frenzy Submodule 
+      - mkdir -p ~/.ssh
+      - echo "$ssh_key" > ~/.ssh/id_rsa   
+      - echo "$ssh_pub" > ~/.ssh/id_rsa.pub
+      - chmod 600 ~/.ssh/id_rsa
+      - eval "$(ssh-agent -s)"
+      - git init
+      - git remote add origin "$git_url"
+      - git fetch origin
+      - git branch
+      - git checkout -f "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - git submodule init
+      - git submodule update --recursive
+
   build:
     commands:
       - echo Build started on `date`
